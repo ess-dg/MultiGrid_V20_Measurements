@@ -56,9 +56,15 @@ def coincidences_2D_plot(ce, measurement_time, bus_start, bus_stop):
         vmax = 1
     # Plot data
     fig = plt.figure()
-    number_detectors = ((bus_stop + 1) - bus_start)//3
+    number_detectors = (bus_stop - bus_start)//3 + 1
     fig.set_figheight(5*number_detectors)
-    fig.set_figwidth(17)
+    if number_detectors == 1:
+        width = (17/3) * ((bus_stop - bus_start) + 1)
+        rows = ((bus_stop - bus_start) + 1)
+    else:
+        width = 17
+        rows = 3
+    fig.set_figwidth(width)
     histograms = []
     for i, bus in enumerate(range(bus_start, bus_stop+1)):
         ce_bus = ce[ce.Bus == bus]
@@ -67,7 +73,7 @@ def coincidences_2D_plot(ce, measurement_time, bus_start, bus_stop):
         events_per_s = number_events/duration
         events_per_m_s = events_per_s
         sub_title = ('Bus %d\n(%d events, %.3f events/s)' % (bus, number_events, events_per_s))
-        plt.subplot(number_detectors, 3, i+1)
+        plt.subplot(number_detectors, rows, i+1)
         fig, h = plot_2D_bus(fig, sub_title, ce_bus, vmin, vmax, duration)
         histograms.append(h)
     plt.tight_layout()

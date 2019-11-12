@@ -178,6 +178,68 @@ class MainWindow(QMainWindow):
             fig.set_figwidth(10)
             PHS_1D_plot(ce_filtered, number_bins)
             fig.show()
+            # Plot PHS for each layer
+            fig = plt.figure()
+            for layer in np.arange(0, 20, 1):
+                ce_red = ce_filtered[(ce_filtered.wCh % 20) == layer]
+                PHS_1D_plot(ce_red, number_bins, label='(Layer %d)' % layer,
+                            density=True)
+                print(layer)
+            fig.show()
+            # Plot 2D histogram of layer vs PHS
+            fig = plt.figure()
+            fig.set_figheight(5)
+            fig.set_figwidth(10)
+            xADCs = ['wADC', 'gADC']
+            labels = ['Wires', 'Grids']
+            # Get weights to apply to each layer
+            weights = []
+            ADC_average_per_layer = []
+            ADC_average_per_layer_unc = []
+            layers = np.arange(0, 20, 1)
+            for layer in layers:
+                indexes = (ce_filtered.wCh % 20 == layer)
+                weights.append(ce_filtered[indexes].shape[0])
+                counts_in_layer = sum(ce_filtered[indexes].gADC.values)
+                number_events = ce_filtered[indexes].shape[0]
+                ADC_average = counts_in_layer/number_events
+                ADC_average_per_layer.append(ADC_average)
+                ADC_average_per_layer_unc.append(np.sqrt(counts_in_layer)/number_events)
+            weights = np.array(weights)
+            ADC_average_per_layer = np.array(ADC_average_per_layer)
+            ADC_average_per_layer_unc = np.array(ADC_average_per_layer_unc)
+            # Plot 2D histogram of layer versus charge
+            for i, (xADC, label) in enumerate(zip(xADCs, labels)):
+                plt.subplot(1, 2, i+1)
+                plt.xlabel('Layer')
+                plt.ylabel('Charge [ADC channels]')
+                bins = [20, 240]
+                plt.hist2d(ce_filtered['wCh'] % 20, ce_filtered[xADC],
+                           bins=bins,
+                           #norm=LogNorm(),
+                           #weights=1/weights[ce_filtered['wCh'] % 20],
+                           range=[[-0.5, 19.5], [0, 10000]],
+                           cmap='jet')
+                cbar = plt.colorbar()
+                cbar.set_label('Counts')
+            plt.tight_layout()
+            fig.show()
+            # Plot ADC average
+            fig = plt.figure()
+            plt.xlabel('Layer')
+            plt.ylabel('Average gADC')
+            plt.title('Average gADC vs depth')
+            plt.grid(True, which='major', linestyle='--', zorder=0)
+            plt.grid(True, which='minor', linestyle='--', zorder=0)
+            plt.errorbar(layers,
+                         ADC_average_per_layer,
+                         ADC_average_per_layer_unc,
+                         fmt='.-', capsize=5,
+                         color='black', zorder=5)
+            fig.show()
+
+
+
 
 
     def PHS_2D_action(self):

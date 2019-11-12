@@ -14,7 +14,8 @@ import numpy as np
 # ============================================================================
 
 
-def PHS_1D_plot(clusters, number_bins, label='', norm=1, ylabel='', intervals=None):
+def PHS_1D_plot(clusters, number_bins, label='', norm=1, ylabel='',
+                intervals=None, density=False):
     """
     Histograms the ADC-values from wires and grids individually, and overlays
     the results from indiviual events and clustered events. For the clustered
@@ -52,10 +53,11 @@ def PHS_1D_plot(clusters, number_bins, label='', norm=1, ylabel='', intervals=No
         # Plot
         hist, bins, *_ = plt.hist(clusters[ADC_type], bins=number_bins,
                                   histtype='step', label='Clusters %s' % label,
-                                  zorder=5, weights=weights, range=range)
+                                  zorder=5, weights=weights, range=range,
+                                  density=density)
         bin_centers = 0.5 * (bins[1:] + bins[:-1])
         bin_centers_vec.append(bin_centers)
         hists.append(hist)
-        plt.legend()
+        plt.legend(loc=2)
     plt.tight_layout()
     return bin_centers_vec, hists
