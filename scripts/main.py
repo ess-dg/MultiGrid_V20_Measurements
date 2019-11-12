@@ -179,13 +179,13 @@ class MainWindow(QMainWindow):
             PHS_1D_plot(ce_filtered, number_bins)
             fig.show()
             # Plot PHS for each layer
-            fig = plt.figure()
-            for layer in np.arange(0, 20, 1):
-                ce_red = ce_filtered[(ce_filtered.wCh % 20) == layer]
-                PHS_1D_plot(ce_red, number_bins, label='(Layer %d)' % layer,
-                            density=True)
-                print(layer)
-            fig.show()
+            #fig = plt.figure()
+            #for layer in np.arange(0, 20, 1):
+            #    ce_red = ce_filtered[(ce_filtered.wCh % 20) == layer]
+            #    PHS_1D_plot(ce_red, number_bins, label='(Layer %d)' % layer,
+            #                density=True)
+            #    print(layer)
+            #fig.show()
             # Plot 2D histogram of layer vs PHS
             fig = plt.figure()
             fig.set_figheight(5)
@@ -222,6 +222,7 @@ class MainWindow(QMainWindow):
                            cmap='jet')
                 cbar = plt.colorbar()
                 cbar.set_label('Counts')
+                plt.title(label)
             plt.tight_layout()
             fig.show()
             # Plot ADC average
