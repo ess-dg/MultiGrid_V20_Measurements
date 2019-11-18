@@ -87,7 +87,7 @@ def calculate_distance_borders(bins, hist, d=28.413):
         return E_new
 
     # Declare intervals, in m
-    distances = np.array([5, 10, 20, 40]) * 1e-2
+    distances = np.arange(1, 41, 1) * 1e-2
     # Extract average E
     average_E = bins[hist == max(hist)]
     average_v = E_to_v(average_E)
@@ -95,9 +95,10 @@ def calculate_distance_borders(bins, hist, d=28.413):
     ToF_extras = distances / average_v
     # Calculate reduced energy from additional ToF (d is from closest voxel)
     ToF = d/average_v
-    linestyles = ['solid', 'dotted', 'dashed', 'dashdot']
-    E_reduced = {0.05: 0, 0.10: 0, 0.20: 0, 0.40: 0}
+    E_reduced = {}
+    for distance in distances:
+        E_reduced.update({distance: 0})
     for ToF_extra, distance in zip(ToF_extras, distances):
         E_new = get_new_E(d, ToF, ToF_extra)
         E_reduced[distance] = E_new
-    return E_reduced, distances, linestyles
+    return E_reduced, distances

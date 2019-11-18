@@ -61,7 +61,7 @@ def calculate_count_rate(ToF_values, measurement_time, number_bins):
     plt.plot(bin_centers, ToF_hist, '.-', color='black', zorder=4)
     plt.grid(True, which='major', linestyle='--', zorder=0)
     plt.grid(True, which='minor', linestyle='--', zorder=0)
-    plt.xlabel('ToF [µs]')
+    plt.xlabel('ToF [s]')
     plt.ylabel('Counts')
     plt.title('Maximum instantaneous count rate: %f Hz' % rate)
     # Print statements for debugging purposes

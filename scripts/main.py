@@ -22,7 +22,8 @@ from matplotlib.colors import LogNorm
 from multi_grid.file_handling.read import unzip_data, import_data
 from multi_grid.file_handling.cluster import cluster_data
 from multi_grid.file_handling.storage import save_data, load_data
-from multi_grid.file_handling.data_preparation import prepare_data, plot_all_peaks
+from multi_grid.file_handling.data_preparation import (prepare_data, plot_all_peaks,
+                                                       plot_all_peaks_from_three_data_sets)
 # He-3 tube
 from helium_tube.file_handling_he3 import unzip_He3_data, import_He3_data, save_He3_data, load_He3_data
 from helium_tube.plotting_he3 import He3_PHS_plot, He3_ToF_plot, He3_Ch_plot, energy_plot_He3, he3_pileup_plot
@@ -179,13 +180,12 @@ class MainWindow(QMainWindow):
             PHS_1D_plot(ce_filtered, number_bins)
             fig.show()
             # Plot PHS for each layer
-            #fig = plt.figure()
-            #for layer in np.arange(0, 20, 1):
-            #    ce_red = ce_filtered[(ce_filtered.wCh % 20) == layer]
-            #    PHS_1D_plot(ce_red, number_bins, label='(Layer %d)' % layer,
-            #                density=True)
-            #    print(layer)
-            #fig.show()
+            fig = plt.figure()
+            for layer in np.arange(0, 20, 1):
+                ce_red = ce_filtered[(ce_filtered.wCh % 20) == layer]
+                PHS_1D_plot(ce_red, number_bins, label='(Layer %d)' % layer)
+                print(layer)
+            fig.show()
             # Plot 2D histogram of layer vs PHS
             fig = plt.figure()
             fig.set_figheight(5)
@@ -587,12 +587,28 @@ class MainWindow(QMainWindow):
             filter_parameters = get_filter_parameters(self)
             ce_filtered = filter_clusters(self.ce, filter_parameters)
             ToF_values = (ce_filtered.ToF * 62.5e-9 + time_offset) % period_time
+            #fig = plt.figure()
+            #count_rate = calculate_count_rate(ToF_values,
+            #                                  self.measurement_time,
+            #                                  number_bins)
+            #fig.show()
+            #print('Count rate: %.1f [Hz]' % count_rate)
             fig = plt.figure()
-            count_rate = calculate_count_rate(ToF_values,
-                                              self.measurement_time,
-                                              number_bins)
+            poisson_distribution = np.random.poisson(221, 10000000)
+            hist, bin_edges, *_ = plt.hist(poisson_distribution, bins=1000,
+                                           density=True, histtype='step',
+                                           color='black', zorder=5)
+            bin_centers = 0.5 * (bin_edges[1:] + bin_edges[:-1])
+            #plt.plot(bin_centers, hist, color='black',
+            #         label='Poisson Distribution', zorder=5)
+            plt.xlabel('Rate (kHz)')
+            plt.ylabel('Fraction')
+            plt.grid(True, which='major', linestyle='--', zorder=0)
+            plt.grid(True, which='minor', linestyle='--', zorder=0)
+            plt.title('Poisson distribution')
             fig.show()
-            print('Count rate: %.1f [Hz]' % count_rate)
+
+
 
     def Efficiency_action(self):
         dirname = os.path.dirname(__file__)
@@ -684,14 +700,18 @@ class MainWindow(QMainWindow):
         full_data = prepare_data(origin_voxel, MG_filter_parameters, He3_filter_parameters)
         MG_coated_data, MG_non_coated_data, He3_data = full_data[0], full_data[1], full_data[4]
         MG_coated_background, MG_non_coated_background, He3_background = full_data[2], full_data[3], full_data[5]
+        # Plot all comparisons
+        plot_all_peaks_from_three_data_sets(MG_non_coated_data, 'MG_Non_Coated', 'blue',
+                                            MG_coated_data, 'MG_Coated', 'green',
+                                            He3_data, 'He3', 'red')
         # Plot all peaks
-        Coated_values = plot_all_peaks(MG_coated_data, 'MG_Coated', colors['MG_Coated'], 28.413)
-        NonCoated_values =  plot_all_peaks(MG_non_coated_data, 'MG_Non_Coated', colors['MG_Non_Coated'], 28.413+1.5e-3)
-        He3_values = plot_all_peaks(He3_data, 'He3', colors['He3'], 28.239+3e-3)
+        #Coated_values = plot_all_peaks(MG_coated_data, 'MG_Coated', colors['MG_Coated'], 28.413)
+        #NonCoated_values =  plot_all_peaks(MG_non_coated_data, 'MG_Non_Coated', colors['MG_Non_Coated'], 28.413+1.5e-3)
+        #He3_values = plot_all_peaks(He3_data, 'He3', colors['He3'], 28.239+3e-3)
         # Extract key values
-        energies_Coated, FoM_Coated, FoM_err_Coated, peak_areas_Coated, peak_err_Coated = Coated_values
-        energies_NonCoated, FoM_NonCoated, FoM_err_NonCoated, peak_areas_NonCoated, peak_err_NonCoated = NonCoated_values
-        energies_He3, FoM_He3, FoM_err_He3, peak_areas_He3, peak_err_He3 = He3_values
+        energies_Coated, FoM_Coated, FoM_err_Coated, peak_areas_Coated, peak_err_Coated, __, shoulder_vector_Coated = Coated_values
+        energies_NonCoated, FoM_NonCoated, FoM_err_NonCoated, peak_areas_NonCoated, peak_err_NonCoated, __, shoulder_vector_NonCoated = NonCoated_values
+        energies_He3, FoM_He3, FoM_err_He3, peak_areas_He3, peak_err_He3, ADC_ratios, shoulder_vector_He3 = He3_values
         # Store all values in vectors
         energies = [energies_Coated, energies_NonCoated, energies_He3]
         labels = ['MG_Coated', 'MG_Non_Coated', 'He3']
@@ -712,6 +732,17 @@ class MainWindow(QMainWindow):
             plot_FoM(energy, FoM, error, label, colors[label])
         plt.legend()
         fig.show()
+        # Plot ADC ratios
+        fig = plt.figure()
+        plt.xlabel('Energy (meV)')
+        plt.ylabel('Ratio (all events/multiple events)')
+        plt.grid(True, which='major', linestyle='--', zorder=0)
+        plt.grid(True, which='minor', linestyle='--', zorder=0)
+        plt.title('Ratio single events multiple events in He-3 tube, using ADC')
+        plt.plot(energies_He3, ADC_ratios, color='red', zorder=5, marker='o',
+                 linestyle='-')
+        fig.show()
+
 
 
     # ==== Animation ==== #
@@ -871,9 +902,16 @@ class MainWindow(QMainWindow):
         MG_label, He3_label = self.data_sets, self.He3_data_sets
         useMaxNorm = True
         # Plot data
+        hist_He3, bin_centers_He3 = He3_ToF_plot(He3_red, number_bins)
+        hist_MG, bin_centers_MG = ToF_histogram(MG_red, number_bins)
         fig = plt.figure()
-        He3_ToF_plot(He3_red, number_bins, He3_label)
-        ToF_histogram(MG_red, number_bins, MG_label)
+        plt.plot(bin_centers_MG, hist_MG/max(hist_MG), zorder=5, color='blue', label='MG')
+        plt.plot(bin_centers_He3, hist_He3/max(hist_He3), zorder=5, color='red', label='He-3')
+        plt.xlabel('ToF (µs)')
+        plt.ylabel('Counts (Normalized to maximum)')
+        plt.title('ToF - MG vs He-3')
+        plt.grid(True, which='major', linestyle='--', zorder=0)
+        plt.grid(True, which='minor', linestyle='--', zorder=0)
         plt.legend()
         fig.show()
 
@@ -939,6 +977,10 @@ class MainWindow(QMainWindow):
                    '2019_09_HZB_He_3_background_beam_blocked_by_boron_cadmium_9208s.zip': 1809302
                    }
         self.BM_counts_dict = bm_dict
+
+    def energy_calculation_beam_monitors(self):
+        pass
+
 
 
 

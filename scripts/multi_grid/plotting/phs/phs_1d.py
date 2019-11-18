@@ -58,6 +58,6 @@ def PHS_1D_plot(clusters, number_bins, label='', norm=1, ylabel='',
         bin_centers = 0.5 * (bins[1:] + bins[:-1])
         bin_centers_vec.append(bin_centers)
         hists.append(hist)
-        plt.legend(loc=2)
+        plt.legend(loc=1)
     plt.tight_layout()
     return bin_centers_vec, hists
