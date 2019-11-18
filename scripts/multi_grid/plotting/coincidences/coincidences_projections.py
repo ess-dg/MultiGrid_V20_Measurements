@@ -46,11 +46,20 @@ def coincidences_projections_plot(df, bus_start, bus_stop, norm=1):
     # Plot
     wChs, gChs, Buses = df.wCh, df.gCh, df.Bus
     plt.subplot(1, 3, 1)
-    h_front = plot_front(wChs, gChs, Buses, bus_start, bus_stop, None, None, norm) #, 3e1, 5e6)
+    h_front = plot_front(wChs, gChs, Buses, bus_start, bus_stop,
+                         None, None,
+                         #5e-4, 7e-3,
+                         norm)
     plt.subplot(1, 3, 2)
-    h_top = plot_top(wChs, gChs, Buses, bus_start, bus_stop, None, None, norm) #, 2e3 ,2e6)
+    h_top = plot_top(wChs, gChs, Buses, bus_start, bus_stop,
+                     None, None,
+                     #1e-3, 2e-2,
+                     norm)
     plt.subplot(1, 3, 3)
-    h_side = plot_side(wChs, gChs, Buses, None, None, norm) #, 2e2, 6e5)
+    h_side = plot_side(wChs, gChs, Buses,
+                       None, None,
+                       #5e-5, 2e-3,
+                       norm)
     # Collect all histograms and tighted layout
     plt.tight_layout()
     histograms = [h_front, h_top, h_side]

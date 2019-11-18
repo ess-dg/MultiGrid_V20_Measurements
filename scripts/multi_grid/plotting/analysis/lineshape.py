@@ -64,6 +64,43 @@ def get_FoM(beam, x0, sigma, start, end, bin_width):
     #plt.axvline(x=x0 - 25*sigma, color='orange', linewidth=2, label=None)
     return FoM, uncertainty
 
+# =============================================================================
+#                           EXTRACT NEW FIGURE-OF-MERIT
+# =============================================================================
+
+def get_new_FoM(full, no_beam, x0, sigma, bin_width):
+    # Define parameters
+    start = -30
+    end = 5
+    interval_range = abs(end-start)
+    # Extract number of counts from regions of interest
+    peak_counts = full[(full >= (x0 + start*sigma)) & (full <= (x0 + end*sigma))]
+    shoulder_counts = no_beam[(no_beam >= (x0 + start*sigma)) & (no_beam <= (x0 + end*sigma))]
+    background_counts = beam[(beam >= (x0 - 30*sigma)) & (beam <= (x0 - 25*sigma))]
+    # Rename for easier calculation of uncertainties
+    a = len(peak_counts)
+    b = len(shoulder_counts)
+    c = len(background_counts)
+    background_range_in_meV = 5*sigma
+    # Define normalization constants
+    norm = (1/background_range_in_meV) * abs((end-start))
+    # Calculate FoM
+    d = a - c * norm
+    e = b - c * norm
+    f = d/e
+    # Calculate uncertainites
+    da = np.sqrt(a)
+    db = np.sqrt(b)
+    dc = np.sqrt(c)
+    dd = np.sqrt(da ** 2 + (dc*norm) ** 2)
+    de = np.sqrt(db ** 2 + (dc*norm) ** 2)
+    df = np.sqrt((dd/d) ** 2 + (de/e) ** 2)
+    uncertainty = df * f
+    FoM = f
+    # Plot background to cross-check calculation
+    plt.axhline(y=b*(1/background_range_in_meV)*bin_width,
+                color='black', linewidth=2, label=None)
+    return FoM, uncertainty
 
 # =============================================================================
 #                               FIND SHOULDER

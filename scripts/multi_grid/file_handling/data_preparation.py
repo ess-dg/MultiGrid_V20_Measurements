@@ -15,7 +15,9 @@ from multi_grid.helper_functions.energy_calculation import calculate_energy
 from multi_grid.helper_functions.fitting import get_hist, get_fit_parameters_guesses, fit_data
 from multi_grid.helper_functions.misc import get_duration, mkdir_p, meV_to_A
 from multi_grid.helper_functions.peak_finding import get_peaks
-from multi_grid.plotting.analysis.lineshape import get_FoM, calculate_distance_borders
+from multi_grid.plotting.analysis.lineshape import (get_FoM,
+                                                    calculate_distance_borders,
+                                                    get_new_FoM)
 from multi_grid.plotting.analysis.efficiency import get_peak_area
 
 from helium_tube.filtering_he3 import filter_He3
@@ -39,8 +41,8 @@ def prepare_data(origin_voxel, MG_filter_parameters, He3_filter_parameters):
 
     Within each data-list, data is returned in following order
 
-    1. DataFrame
-    2. Energies
+   (1. Energies - Beam Removed) <- Only for MG
+    2. Energies - Full
     3. Histogram
     4. Bin centers
    (5. Peaks)
@@ -77,12 +79,26 @@ def prepare_data(origin_voxel, MG_filter_parameters, He3_filter_parameters):
     print('Multi-Grid...')
     for i, file_name in enumerate(MG_file_names):
         path = os.path.join(dirname, '../../../data/Lineshape/%s' % file_name)
+        # Calculate energies and histograms
         df = pd.read_hdf(path, 'ce')
         df_red = filter_clusters(df, MG_filter_parameters)
         duration = get_duration(df)
         energies = calculate_energy(df_red, origin_voxel, MG_distance_offsets[i])
         hist, bins = get_hist(energies, number_bins, start, end)
-        data = [df_red, energies, hist, bins]
+        # Calculate energy for when row which neutron beam hits is removed
+        energies_no_beam = None
+        if i == 0:
+            df_no_beam = df_red[~((((df_red.Bus * 4) + df_red.wCh//20) == 6) &
+                                    (df_red.gCh >= 86) &
+                                    (df_red.gCh <= 89))]
+            energies_no_beam = calculate_energy(df_no_beam, origin_voxel, MG_distance_offsets[i])
+        elif i == 1:
+            df_no_beam = df_red[~((((df_red.Bus * 4) + df_red.wCh//20) == 6) &
+                                    (df_red.gCh >= 87) &
+                                    (df_red.gCh <= 89))]
+            energies_no_beam = calculate_energy(df_no_beam, origin_voxel, MG_distance_offsets[i])
+        # Store data
+        data = [energies_no_beam, energies, hist, bins]
         if i < 2:
             # If it is a beam measurement, extract peaks
             peaks = get_peaks(hist, heights_vec_MG[i], number_bins)
@@ -97,7 +113,7 @@ def prepare_data(origin_voxel, MG_filter_parameters, He3_filter_parameters):
         df_red = filter_He3(df, He3_filter_parameters)
         energies = calculate_He3_energy(df_red, He3_distance_offset)
         hist, bins = get_hist(energies, number_bins, start, end)
-        data = [df_red, energies, hist, bins]
+        data = [None, energies, hist, bins]
         if i < 1:
             # If it is a beam measurement, extract peaks and pile up info
             peaks = get_peaks(hist, heights_He3, number_bins)
@@ -184,16 +200,6 @@ def plot_all_peaks(data, label, color, chopper_to_detector_distance):
         # Extract FoM between limits 1 cm apart
         FoM_steps = []
         FoM_uncertainity_steps = []
-        #for i in np.arange(10, 39, 1):
-        #    # Declare distance
-        #    distance = distances[i+1]
-        #    # Declare start and stop
-        #    start = reduced_energies[distances[i]]
-        #    stop = reduced_energies[distances[i+1]]
-        #    # Get FoM
-        #    FoM_step, FoM_uncertainity_step = get_FoM(energies, x0, sigma, start, end, bin_width)
-        #    FoM_steps.append(FoM_step)
-        #    FoM_uncertainity_steps.append(FoM_uncertainity_step)
         # Extract area
         peak_area, peak_area_uncertainity = get_peak_area(energies, x0, sigma, bin_width, weights)
         # Extract ratio between single events and double events using ADC values
@@ -223,27 +229,6 @@ def plot_all_peaks(data, label, color, chopper_to_detector_distance):
         output_path = output_folder + file_name
         fig.savefig(output_path, bbox_inches='tight')
         plt.close()
-        # Save Shoulder Investigation
-        #fig = plt.figure()
-        #plt.errorbar(distances,
-        #             FoM_steps,
-        #             FoM_uncertainity_steps,
-        #             fmt='.-', capsize=5, zorder=5,
-        #             color=color,
-        #             label=label)
-        # Stylise plot
-        #plt.grid(True, which='major', linestyle='--', zorder=0)
-        #plt.grid(True, which='minor', linestyle='--', zorder=0)
-        #plt.title('Peak at: %.2f meV (%.2f Å)' % (peak, meV_to_A(peak)))
-        #plt.xlabel('Distance (m)')
-        #plt.ylabel('FoM')
-        #plt.legend()
-        # Save plot
-        #file_name = 'Shoulder_Investigation_%s_Peak_at_%.2f_meV_(%.2f_Å).pdf' % (label, peak, meV_to_A(peak))
-        #output_path = output_folder + file_name
-        #fig.savefig(output_path, bbox_inches='tight')
-        #plt.close()
-
     return peak_energies, FoMs, FoM_uncertainites, peak_areas, peak_area_uncertainties, ADC_ratios, shoulder_vector
 
 
@@ -252,9 +237,9 @@ def plot_all_peaks(data, label, color, chopper_to_detector_distance):
 #                   PREPARE COMPARISON BETWEEN ALL DETECTORS
 # =============================================================================
 
-def plot_all_peaks_from_three_data_sets(data_1, label_1, color_1,
-                                        data_2, label_2, color_2,
-                                        data_3, label_3, color_3):
+def plot_all_peaks_from_three_data_sets(data_1, label_1, color_1, bm_norm_1,
+                                        data_2, label_2, color_2, bm_norm_2,
+                                        data_3, label_3, color_3, bm_norm_3):
     # Prepare output paths
     dirname = os.path.dirname(__file__)
     output_folder = os.path.join(dirname, '../../../output/Comparison_%s_and_%s_and_%s/' % (label_1, label_2, label_3))
@@ -264,6 +249,14 @@ def plot_all_peaks_from_three_data_sets(data_1, label_1, color_1,
     energies_2 = data_2[1]
     energies_3 = data_3[1]
     number_bins = 100
+    # Extract energies with no beam
+    energies_no_beam_1, energies_no_beam_2 = data_1[0], data_2[0]
+    # Declare vectors to store FoM in
+    FoMs_1 = []
+    FoMs_2 = []
+    errors_1 = []
+    errors_2 = []
+    peak_centers = []
     # Iterate through all peaks
     for width, peak in zip(widths, peaks):
         # Extract fit guesses and peak borders
@@ -275,14 +268,15 @@ def plot_all_peaks_from_three_data_sets(data_1, label_1, color_1,
         hist_fit, bins_fit = get_hist(energies, number_bins, left_fit, right_fit)
         # Fit data
         a, x0, sigma, *_ = fit_data(hist_fit, bins_fit, a_guess, x0_guess, sigma_guess)
+        peak_centers.append(x0)
         fig = plt.figure()
-        fig.set_figheight(5)
-        fig.set_figwidth(15)
-        plt.subplot(1, 3, 1)
+        fig.set_figheight(20)
+        fig.set_figwidth(20)
+        plt.subplot(2, 2, 1)
         # Prepare data within +/- 25 of our estimated sigma, we'll use this to plot
-        left_plot, right_plot = (x0 - (50 * sigma)), (x0 + (10 * sigma))
-        hist_plot, bins_plot = get_hist(energies, number_bins, left_plot, right_plot)
+        left_plot, right_plot = (x0 - (25 * sigma)), (x0 + (5 * sigma))
         # Plot from main data
+        hist_plot, bins_plot = get_hist(energies, number_bins, left_plot, right_plot)
         norm_1 = 1/max(hist_plot)
         plt.errorbar(bins_plot, hist_plot*norm_1, np.sqrt(hist_plot)*norm_1, fmt='.-',
                      capsize=5, zorder=5, label=label_1, color=color_1)
@@ -310,54 +304,152 @@ def plot_all_peaks_from_three_data_sets(data_1, label_1, color_1,
         plt.title('Peak at: %.2f meV (%.2f Å)' % (bins[peak], meV_to_A(bins[peak])))
         plt.xlabel('Energy [meV]')
         plt.ylabel('Counts (Normalized to maximum)')
-        plt.xlim(x0 - (50 * sigma), x0 + (10 * sigma))
+        plt.xlim(x0 - (25 * sigma), x0 + (5 * sigma))
         plt.yscale('log')
         plt.legend(loc=2)
-        # Plot FoM as a function of distance
-        plt.subplot(1, 3, 2)
-        FoMs_1 = get_FoM_vector(energies, number_bins, left_fit, right_fit, distances, E_reduced)
-        FoMs_2 = get_FoM_vector(energies_2, number_bins, left_fit, right_fit, distances, E_reduced)
-        FoMs_3 = get_FoM_vector(energies_3, number_bins, left_fit, right_fit, distances, E_reduced)
+        # Plot data without beam in it
+        plt.subplot(2, 2, 2)
+        number_bins_no_beam = 50
+        hist_no_beam_1, bins_no_beam_1 = get_hist(energies_no_beam_1, number_bins, left_plot, right_plot)
+        hist_no_beam_2, bins_no_beam_2 = get_hist(energies_no_beam_2, number_bins, left_plot, right_plot)
+        no_beam_norm_1 = 1/max(hist_no_beam_1)
+        no_beam_norm_2 = 1/max(hist_no_beam_2)
+        plt.errorbar(bins_no_beam_1,
+                     hist_no_beam_1*norm_1,
+                     np.sqrt(hist_no_beam_1)*norm_1,
+                     fmt='.-', capsize=1, zorder=5, label=label_1, color=color_1)
+        plt.errorbar(bins_no_beam_2,
+                     hist_no_beam_2*norm_2,
+                     np.sqrt(hist_no_beam_2)*norm_2,
+                     fmt='.-', capsize=1, zorder=5, label=label_2, color=color_2)
+        plt.axvline(x=x0, color='red', label='Peak center',
+                    zorder=10, linewidth=2, linestyle='dotted')
         plt.grid(True, which='major', linestyle='--', zorder=0)
         plt.grid(True, which='minor', linestyle='--', zorder=0)
-        plt.title('FoM vs additional travel distance')
-        plt.xlabel('Distance (cm)')
-        plt.ylabel('FoM')
-        print(FoMs_1[0])
-        print(FoMs_1[1])
-        print(FoMs_1[2])
-        print(len(FoMs_1[0]))
-        print(len(FoMs_1[1]))
-        print(len(FoMs_1[2]))
-        plt.errorbar(FoMs_1[0], FoMs_1[1], FoMs_1[2], fmt='.-', label=label_1,
-                     color=color_1, capsize=5, zorder=5)
-        plt.errorbar(FoMs_2[0], FoMs_2[1], FoMs_2[2], label=label_2,
-                     color=color_2, fmt='.-', capsize=5, zorder=5)
-        plt.errorbar(FoMs_3[0], FoMs_3[1], FoMs_3[2], label=label_3,
-                     color=color_3, fmt='.-', capsize=5, zorder=5)
-        plt.legend(loc=1)
+        plt.title('Energy spectra - direct beam removed')
+        plt.xlabel('Energy (meV)')
+        plt.ylabel('Counts (Normalized to peak maximum)')
+        plt.xlim(x0 - (25 * sigma), x0 + (5 * sigma))
+        plt.legend(loc=2)
+        # Plot comparison between full data and beam removed
+        bin_width = bins_plot[1] - bins_plot[0]
+        plt.subplot(2, 2, 3)
+        plt.errorbar(bins_plot,
+                     hist_plot,
+                     np.sqrt(hist_plot),
+                     fmt='.-', capsize=1, zorder=5,
+                     label='Full data',
+                     color=color_1,
+                     linestyle='solid')
+        plt.errorbar(bins_no_beam_1,
+                     hist_no_beam_1,
+                     np.sqrt(hist_no_beam_1),
+                     fmt='.-', capsize=1, zorder=6,
+                     label='Direct beam removed',
+                     color=color_1,
+                     linestyle='dotted')
+        plt.axvline(x=bins_plot[np.where(hist_plot == max(hist_plot))[0]],
+                    color='red', label='Peak center',
+                    zorder=10, linewidth=2, linestyle='dotted')
+        FoM_1, uncertainty_1 = get_new_FoM(energies,
+                                           energies_no_beam_1,
+                                           x0, sigma, bin_width)
+        plt.grid(True, which='major', linestyle='--', zorder=0)
+        plt.grid(True, which='minor', linestyle='--', zorder=0)
+        plt.title('Comparison full data and no beam data - %s' % label_1)
+        plt.xlabel('Energy (meV)')
+        plt.ylabel('Counts')
+        plt.yscale('log')
+        plt.xlim(x0 - (25 * sigma), x0 + (5 * sigma))
+        plt.legend(loc=2)
+        plt.subplot(2, 2, 4)
+        plt.errorbar(bins_2,
+                     hist_2,
+                     np.sqrt(hist_2),
+                     fmt='.-', capsize=1, zorder=5,
+                     label='Full data',
+                     color=color_2,
+                     linestyle='solid')
+        plt.errorbar(bins_no_beam_2,
+                     hist_no_beam_2,
+                     np.sqrt(hist_no_beam_2),
+                     fmt='.-', capsize=1, zorder=6,
+                     label='Direct beam removed',
+                     color=color_2,
+                     linestyle='dotted')
+        plt.axvline(x=bins_2[np.where(hist_2 == max(hist_2))[0]],
+                    color='red', label='Peak center',
+                    zorder=10, linewidth=2, linestyle='dotted')
+        FoM_2, uncertainty_2 = get_new_FoM(energies_2,
+                                           energies_no_beam_2,
+                                           x0, sigma, bin_width)
+        plt.grid(True, which='major', linestyle='--', zorder=0)
+        plt.grid(True, which='minor', linestyle='--', zorder=0)
+        plt.title('Comparison full data and no beam data - %s' % label_2)
+        plt.xlabel('Energy (meV)')
+        plt.ylabel('Counts')
+        plt.yscale('log')
+        plt.xlim(x0 - (25 * sigma), x0 + (5 * sigma))
+        plt.legend(loc=2)
+        # Extract new Figure-of-Merit, based on neutrons detected on the side of
+        # main beam.
+        FoMs_1.append(FoM_1)
+        FoMs_2.append(FoM_2)
+        errors_1.append(uncertainty_1)
+        errors_2.append(uncertainty_2)
+        # Plot FoM as a function of distance
+        #plt.subplot(2, 2, 3)
+        #FoMs_1 = get_FoM_vector(energies, number_bins, left_fit, right_fit, distances, E_reduced)
+        #FoMs_2 = get_FoM_vector(energies_2, number_bins, left_fit, right_fit, distances, E_reduced)
+        #FoMs_3 = get_FoM_vector(energies_3, number_bins, left_fit, right_fit, distances, E_reduced)
+        #plt.grid(True, which='major', linestyle='--', zorder=0)
+        #plt.grid(True, which='minor', linestyle='--', zorder=0)
+        #plt.title('FoM vs additional travel distance')
+        #plt.xlabel('Distance (cm)')
+        #plt.ylabel('FoM')
+        #print(FoMs_1[0])
+        #print(FoMs_1[1])
+        #print(FoMs_1[2])
+        #print(len(FoMs_1[0]))
+        #print(len(FoMs_1[1]))
+        #print(len(FoMs_1[2]))
+        #plt.errorbar(FoMs_1[0], FoMs_1[1], FoMs_1[2], fmt='.-', label=label_1,
+        #             color=color_1, capsize=5, zorder=5)
+        #plt.errorbar(FoMs_2[0], FoMs_2[1], FoMs_2[2], label=label_2,
+        #             color=color_2, fmt='.-', capsize=5, zorder=5)
+        #plt.errorbar(FoMs_3[0], FoMs_3[1], FoMs_3[2], label=label_3,
+        #             color=color_3, fmt='.-', capsize=5, zorder=5)
+        #plt.legend(loc=1)
         # Plot relevant ratios
-        plt.subplot(1, 3, 3)
-        plt.plot(FoMs_1[0], FoMs_1[1]/FoMs_2[1],
-                 label='%s/%s' % (label_1, label_2),
-                 marker='o', linestyle='-', zorder=5, color='black')
+        #plt.subplot(2, 2, 4)
+        #plt.plot(FoMs_1[0], FoMs_1[1]/FoMs_2[1],
+        #         label='%s/%s' % (label_1, label_2),
+        #         marker='o', linestyle='-', zorder=5, color='black')
         #plt.plot(FoMs_1[0], FoMs_1[1]/FoMs_3[1],
         #         label='%s/%s' % (label_1, label_3),
         #         marker='o', linestyle='-', zorder=5)
         #plt.plot(FoMs_1[0], FoMs_2[1]/FoMs_3[1],
         #         label='%s/%s' % (label_2, label_3),
         #         marker='o', linestyle='-', zorder=5)
-        plt.grid(True, which='major', linestyle='--', zorder=0)
-        plt.grid(True, which='minor', linestyle='--', zorder=0)
-        plt.title('Fractional FoM vs additional travel distance')
-        plt.xlabel('Distance (cm)')
-        plt.ylabel('Fractional FoM')
-        plt.legend(loc=1)
+        #plt.grid(True, which='major', linestyle='--', zorder=0)
+        #plt.grid(True, which='minor', linestyle='--', zorder=0)
+        #plt.title('Fractional FoM vs additional travel distance')
+        #plt.xlabel('Distance (cm)')
+        #plt.ylabel('Fractional FoM')
+        #plt.legend(loc=1)
         # Save plot
         file_name = 'Peak_at_%.2f_meV_(%.2f_Å).pdf' % (bins[peak], meV_to_A(bins[peak]))
         output_path = output_folder + file_name
         fig.savefig(output_path, bbox_inches='tight')
+        plt.tight_layout()
         plt.close()
+    # Convert our FoM-vectors to numpy arrays
+    FoMs_1 = np.array(FoMs_1)
+    FoMs_2 = np.array(FoMs_2)
+    errors_1 = np.array(errors_1)
+    errors_2 = np.array(errors_2)
+    peak_centers = mp.array(peak_centers)
+    return peak_centers, FoMs_1, FoMs_2, errors_1, errors_2
 
 
 

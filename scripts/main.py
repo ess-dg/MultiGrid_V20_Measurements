@@ -459,6 +459,15 @@ class MainWindow(QMainWindow):
                        delimiter=",",
                        header='ToF (µs), Counts')
             fig.show()
+            # Plot comparison beam events and non-beam events
+            df = ce_filtered
+            beam_events = ((df.Bus * 4) + df.wCh//20) == 6
+            df_non_beam = df[~beam_events]
+            fig = plt.figure()
+            ToF_histogram(df, number_bins, 'Full data', range=[0, 71e3])
+            ToF_histogram(df_non_beam, number_bins, 'No beam', range=[0, 71e3])
+            plt.legend()
+            fig.show()
 
     def ToF_Overlay_action(self):
         paths = QFileDialog.getOpenFileNames(self, "", "../data")[0]
@@ -526,6 +535,17 @@ class MainWindow(QMainWindow):
             plot_energy = True
             energy_plot(ce_filtered, origin_voxel, number_bins, start, stop, plot_energy)
             fig.show()
+            # Plot comparison full data and non-beam events
+            df = ce_filtered
+            beam_events = ((df.Bus * 4) + df.wCh//20) == 6
+            df_no_beam = df[~beam_events]
+            fig = plt.figure()
+            energy_plot(df, origin_voxel, number_bins, start, stop,
+                        plot_energy, label='Full data')
+            energy_plot(df_no_beam, origin_voxel, number_bins, start, stop,
+                        plot_energy, label='No beam')
+            plt.legend()
+            fig.show()
 
     def Wavelength_action(self):
         if (self.data_sets != ''):
@@ -540,6 +560,17 @@ class MainWindow(QMainWindow):
             stop = 10
             plot_energy = False
             energy_plot(ce_filtered, origin_voxel, number_bins, start, stop, plot_energy)
+            fig.show()
+            # Plot comparison full data and non-beam events
+            df = ce_filtered
+            beam_events = ((df.Bus * 4) + df.wCh//20) == 6
+            df_no_beam = df[~beam_events]
+            fig = plt.figure()
+            energy_plot(df, origin_voxel, number_bins, start, stop,
+                        plot_energy, label='Full data')
+            energy_plot(df_no_beam, origin_voxel, number_bins, start, stop,
+                        plot_energy, label='No beam')
+            plt.legend()
             fig.show()
 
     def Wavelength_overlay_action(self):
@@ -701,9 +732,9 @@ class MainWindow(QMainWindow):
         MG_coated_data, MG_non_coated_data, He3_data = full_data[0], full_data[1], full_data[4]
         MG_coated_background, MG_non_coated_background, He3_background = full_data[2], full_data[3], full_data[5]
         # Plot all comparisons
-        plot_all_peaks_from_three_data_sets(MG_non_coated_data, 'MG_Non_Coated', 'blue',
-                                            MG_coated_data, 'MG_Coated', 'green',
-                                            He3_data, 'He3', 'red')
+        FoMs_1, FoMs_2, errors_1, errors_2 = plot_all_peaks_from_three_data_sets(MG_non_coated_data, 'MG_Non_Coated', 'blue', monitor_norm_coated,
+                                                                                 MG_coated_data, 'MG_Coated', 'green', monitor_norm_non_coated,
+                                                                                 He3_data, 'He3', 'red', monitor_norm_He3)
         # Plot all peaks
         #Coated_values = plot_all_peaks(MG_coated_data, 'MG_Coated', colors['MG_Coated'], 28.413)
         #NonCoated_values =  plot_all_peaks(MG_non_coated_data, 'MG_Non_Coated', colors['MG_Non_Coated'], 28.413+1.5e-3)

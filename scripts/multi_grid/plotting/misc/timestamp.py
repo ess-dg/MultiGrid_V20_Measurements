@@ -29,7 +29,7 @@ def timestamp_plot(Time, number_bins, unit, label):
 
 
     # Prepare figure
-    plt.title('Timestamp Histogram')
+    plt.title('Rate vs Time')
     plt.xlabel('Time (%s)' % unit)
     plt.ylabel('Rate (events/s)')
     plt.grid(True, which='major', zorder=0)

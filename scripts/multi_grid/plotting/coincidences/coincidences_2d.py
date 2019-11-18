@@ -35,7 +35,7 @@ def coincidences_2D_plot(ce, measurement_time, bus_start, bus_stop):
     def plot_2D_bus(fig, sub_title, ce, vmin, vmax, duration):
         h, *_ = plt.hist2d(ce.wCh, ce.gCh, bins=[80, 40],
                            range=[[-0.5, 79.5], [79.5, 119.5]],
-                           #vmin=vmin, vmax=vmax,
+                           vmin=vmin, vmax=vmax,
                            norm=LogNorm(), cmap='jet')
         plt.xlabel('Wire [Channel number]')
         plt.ylabel('Grid [Channel number]')
