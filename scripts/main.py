@@ -55,7 +55,8 @@ from multi_grid.plotting.analysis.lineshape import plot_FoM
 from multi_grid.plotting.analysis.layers import (investigate_layers_ToF,
                                                  investigate_layers_FWHM,
                                                  investigate_layers_delta_ToF,
-                                                 investigate_layers_counts)
+                                                 investigate_layers_counts,
+                                                 investigate_grids)
 # Animation
 from multi_grid.plotting.animation.animation_3d import Animation_3D_plot
 from multi_grid.plotting.animation.lambda_sweep import Lambda_Sweep_Animation
@@ -180,64 +181,82 @@ class MainWindow(QMainWindow):
             PHS_1D_plot(ce_filtered, number_bins)
             fig.show()
             # Plot PHS for each layer
-            fig = plt.figure()
-            for layer in np.arange(0, 20, 1):
-                ce_red = ce_filtered[(ce_filtered.wCh % 20) == layer]
-                PHS_1D_plot(ce_red, number_bins, label='(Layer %d)' % layer)
-                print(layer)
-            fig.show()
+            #fig = plt.figure()
+            #for layer in np.arange(0, 20, 1):
+            #    ce_red = ce_filtered[(ce_filtered.wCh % 20) == layer]
+            #    PHS_1D_plot(ce_red, number_bins, label='(Layer %d)' % layer)
+            #    print(layer)
+            #fig.show()
             # Plot 2D histogram of layer vs PHS
-            fig = plt.figure()
-            fig.set_figheight(5)
-            fig.set_figwidth(10)
-            xADCs = ['wADC', 'gADC']
-            labels = ['Wires', 'Grids']
+            #fig = plt.figure()
+            #fig.set_figheight(5)
+            #fig.set_figwidth(10)
+            #xADCs = ['wADC', 'gADC']
+            #labels = ['Wires', 'Grids']
             # Get weights to apply to each layer
-            weights = []
-            ADC_average_per_layer = []
-            ADC_average_per_layer_unc = []
-            layers = np.arange(0, 20, 1)
-            for layer in layers:
-                indexes = (ce_filtered.wCh % 20 == layer)
-                weights.append(ce_filtered[indexes].shape[0])
-                counts_in_layer = sum(ce_filtered[indexes].gADC.values)
-                number_events = ce_filtered[indexes].shape[0]
-                ADC_average = counts_in_layer/number_events
-                ADC_average_per_layer.append(ADC_average)
-                ADC_average_per_layer_unc.append(np.sqrt(counts_in_layer)/number_events)
-            weights = np.array(weights)
-            ADC_average_per_layer = np.array(ADC_average_per_layer)
-            ADC_average_per_layer_unc = np.array(ADC_average_per_layer_unc)
+            #weights = []
+            #ADC_average_per_layer = []
+            #ADC_average_per_layer_unc = []
+            #layers = np.arange(0, 20, 1)
+            #for layer in layers:
+            #    indexes = (ce_filtered.wCh % 20 == layer)
+            #    weights.append(ce_filtered[indexes].shape[0])
+            #    counts_in_layer = sum(ce_filtered[indexes].gADC.values)
+            #    number_events = ce_filtered[indexes].shape[0]
+            #    ADC_average = counts_in_layer/number_events
+            #    ADC_average_per_layer.append(ADC_average)
+            #    ADC_average_per_layer_unc.append(np.sqrt(counts_in_layer)/number_events)
+            #weights = np.array(weights)
+            #ADC_average_per_layer = np.array(ADC_average_per_layer)
+            #ADC_average_per_layer_unc = np.array(ADC_average_per_layer_unc)
             # Plot 2D histogram of layer versus charge
-            for i, (xADC, label) in enumerate(zip(xADCs, labels)):
-                plt.subplot(1, 2, i+1)
-                plt.xlabel('Layer')
-                plt.ylabel('Charge [ADC channels]')
-                bins = [20, 240]
-                plt.hist2d(ce_filtered['wCh'] % 20, ce_filtered[xADC],
-                           bins=bins,
-                           #norm=LogNorm(),
-                           #weights=1/weights[ce_filtered['wCh'] % 20],
-                           range=[[-0.5, 19.5], [0, 10000]],
-                           cmap='jet')
-                cbar = plt.colorbar()
-                cbar.set_label('Counts')
-                plt.title(label)
-            plt.tight_layout()
-            fig.show()
+            #for i, (xADC, label) in enumerate(zip(xADCs, labels)):
+            #    plt.subplot(1, 2, i+1)
+            #    plt.xlabel('Layer')
+            #    plt.ylabel('Charge [ADC channels]')
+            #    bins = [20, 240]
+            #    plt.hist2d(ce_filtered['wCh'] % 20, ce_filtered[xADC],
+            #               bins=bins,
+            #               #norm=LogNorm(),
+            #               #weights=1/weights[ce_filtered['wCh'] % 20],
+            #               range=[[-0.5, 19.5], [0, 10000]],
+            #               cmap='jet')
+            #    cbar = plt.colorbar()
+            #    cbar.set_label('Counts')
+            #    plt.title(label)
+            #plt.tight_layout()
+            #fig.show()
             # Plot ADC average
-            fig = plt.figure()
-            plt.xlabel('Layer')
-            plt.ylabel('Average gADC')
-            plt.title('Average gADC vs depth')
+            #fig = plt.figure()
+            #plt.xlabel('Layer')
+            #plt.ylabel('Average gADC')
+            #plt.title('Average gADC vs depth')
+            #plt.grid(True, which='major', linestyle='--', zorder=0)
+            #plt.grid(True, which='minor', linestyle='--', zorder=0)
+            #plt.errorbar(layers,
+            #             ADC_average_per_layer,
+            #             ADC_average_per_layer_unc,
+            #             fmt='.-', capsize=5,
+            #             color='black', zorder=5)
+            #fig.show()
+            fig2 = plt.figure()
+            df = ce_filtered
+            plt.xlabel('Charge (ADC channels)')
+            plt.ylabel('Counts')
             plt.grid(True, which='major', linestyle='--', zorder=0)
             plt.grid(True, which='minor', linestyle='--', zorder=0)
-            plt.errorbar(layers,
-                         ADC_average_per_layer,
-                         ADC_average_per_layer_unc,
-                         fmt='.-', capsize=5,
-                         color='black', zorder=5)
-            fig.show()
+            df_beam = df[(df.gCh >= 87) & (df.gCh <= 89)]
+            df_middle = df[(df.gCh >= 99) & (df.gCh <= 101)]
+            plt.hist(df_beam.wADC, bins=150, range=[0, 4500],
+                     histtype='step',
+                     color='blue', label='Beam', zorder=5)
+            plt.hist(df_middle.wADC, bins=150, range=[0, 4500],
+                     histtype='step',
+                     color='red', label='Middle', zorder=5)
+            plt.ylim(0, 400e3)
+            plt.legend(loc=0)
+            fig2.show()
+
 
 
 
@@ -359,7 +378,7 @@ class MainWindow(QMainWindow):
             bus_stop = self.module_max.value()
             # Get beam monitor data
             file_name = self.data_sets[5:-5]
-            norm = 1/get_duration(ce_filtered)#self.BM_counts_dict[file_name]
+            norm = 1/get_duration(ce_filtered)  # self.BM_counts_dict[file_name]
             fig, histograms = coincidences_projections_plot(ce_filtered, bus_start, bus_stop, norm)
             # Export histograms to text
             dir_name = os.path.dirname(__file__)
@@ -481,7 +500,7 @@ class MainWindow(QMainWindow):
             hists = []
             bin_centers_vec = []
             range = [0, 71e3]
-            for path, label in zip(paths, labels):
+            for i, (path, label) in enumerate(zip(paths, labels)):
                 # Get data
                 data_set = path.rsplit('/', 1)[-1][:-3] + '.zip'
                 ce = pd.read_hdf(path, 'ce')
@@ -490,9 +509,15 @@ class MainWindow(QMainWindow):
                 norm = 1/self.BM_counts_dict[data_set]
                 # Plot
                 hist, bins = ToF_histogram(ce_filtered, number_bins, label, norm, range)
-                hists.append(hist)
-                bin_centers_vec.append(bins)
-            plt.plot(bin_centers_vec[0], hists[0]-hists[1], label='Difference', zorder=5)
+                #hists.append(hist)
+                #bin_centers_vec.append(bins)
+                # If beam data, plot no beam data also
+                if i == 0:
+                    df = ce_filtered
+                    beam_events = ((((df.Bus * 4) + df.wCh//20) == 6) & (df.gCh <= 89) & (df.gCh >= 87))
+                    df_no_beam = df[~beam_events]
+                    ToF_histogram(df_no_beam, number_bins, 'Beam, events outside beam', norm, range)
+            #plt.plot(bin_centers_vec[0], hists[0]-hists[1], label='Difference', zorder=5)
             plt.title('ToF')
             plt.xlabel('ToF [$\mu$s]')
             plt.ylabel('Counts (Normalized by beam monitor)')
@@ -530,8 +555,8 @@ class MainWindow(QMainWindow):
                             int(self.gCh_origin.text()),
                             int(self.wCh_origin.text())]
             fig = plt.figure()
-            start = 0.8
-            stop = 10
+            start = meV_to_A(80)
+            stop = meV_to_A(0.8)
             plot_energy = True
             energy_plot(ce_filtered, origin_voxel, number_bins, start, stop, plot_energy)
             fig.show()
@@ -582,31 +607,37 @@ class MainWindow(QMainWindow):
         MG_filter_parameters = get_filter_parameters(self)
         He3_filter_parameters = get_He3_filter_parameters(self)
         fig = plt.figure()
+        # Norm definitions
+        monitor_norm_coated = 1/11411036
+        monitor_norm_non_coated = 1/9020907
+        monitor_norm_He3 = 1/10723199
         # Multi-Grid
         for i, path in enumerate(paths):
-            label = path.rsplit('/', 1)[-1]
+            #label = path.rsplit('/', 1)[-1]
             ce = pd.read_hdf(path, 'ce')
             ce_filtered = filter_clusters(ce, MG_filter_parameters)
-            duration = get_duration(ce)
-            norm = 1/duration
+            #duration = get_duration(ce)
+            #norm = 1/duration
             energy = calculate_energy(ce_filtered, origin_voxel)
             plt.hist(meV_to_A(energy), bins=number_bins, range=[0, 10], zorder=5,
-                     histtype='step', label=label, weights=norm*np.ones(len(energy)))
+                     histtype='step',
+                     label='Multi-Grid detector',
+                     weights=monitor_norm_non_coated*np.ones(len(energy)))
             print('Progress: %d/%d' % (i+1, len(paths)))
         # He-3
         He3_df_red = filter_He3(self.He3_df, He3_filter_parameters)
         energy_He3 = calculate_He3_energy(He3_df_red)
-        norm_He3 = 1/54304
+        #norm_He3 = 1/54304
         plt.hist(meV_to_A(energy_He3), bins=number_bins, range=[0, 10], zorder=5,
                  histtype='step',
-                 label='2019_09_HZB_He3InBeam54304s_overnight.lst',
-                 weights=norm*np.ones(len(energy_He3)))
+                 label='Helium-3 tube',
+                 weights=monitor_norm_He3*np.ones(len(energy_He3)))
         plt.grid(True, which='major', linestyle='--', zorder=0)
         plt.grid(True, which='minor', linestyle='--', zorder=0)
-        plt.ylabel('Counts (Normalized to duration)')
-        plt.xlabel('Wavelength [Å]')
-        plt.title('Wavelength Distribution')
-        plt.legend(loc=1)
+        plt.ylabel('Counts (Normalized to beam monitor)')
+        plt.xlabel('Wavelength (Å)')
+        #plt.title('Wavelength Distribution')
+        plt.legend()
         fig.show()
 
     def Count_Rate_action(self):
@@ -650,36 +681,51 @@ class MainWindow(QMainWindow):
         fig = plt.figure()
         start = 0.01
         end = 12
-        fig.suptitle('Efficiency, Multi-Grid and He-3')
+        #fig.suptitle('Efficiency, Multi-Grid and He-3')
         fig.set_figheight(5)
-        fig.set_figwidth(10)
-        plt.subplot(1, 2, 1)
-        plt.plot(He3_efficiency[0], He3_efficiency[1], color='red',
-                 label='He-3 (Average, Metal Container)', zorder=5)
-        #plt.plot(MG_efficiency[0], MG_efficiency[1], color='blue',
-        #         label='MG (90° incident angle)', zorder=5)
-        plt.title('Wavelength')
+        fig.set_figwidth(5)
+        #plt.subplot(1, 2, 1)
+        #plt.plot(He3_efficiency[0], He3_efficiency[1], color='black',
+        #         label='He-3 (Average, Metal Container)', zorder=5)
+        plt.plot(MG_efficiency[0], MG_efficiency[1], color='black',
+                 label='MG (90° incident angle)', zorder=5)
+        #plt.title('Wavelength')
         plt.xlabel('Wavelength (Å)')
         plt.ylabel('Efficiency')
         plt.grid(True, which='major', linestyle='--', zorder=0)
         plt.grid(True, which='minor', linestyle='--', zorder=0)
-        plt.xlim(start, end)
-        plt.legend()
-        plt.subplot(1, 2, 2)
-        plt.plot(A_to_meV(He3_efficiency[0]), He3_efficiency[1], color='red',
-                 label='He-3 (Average, Metal Container)', zorder=5)
+        plt.xlim(-0.15, 6.15)
+        plt.ylim(-0.02, 1.02)
+        #plt.legend()
+        #plt.subplot(1, 2, 2)
+        #plt.plot(A_to_meV(He3_efficiency[0]), He3_efficiency[1], color='red',
+        #         label='He-3 (Average, Metal Container)', zorder=5)
         #plt.plot(A_to_meV(MG_efficiency[0]), MG_efficiency[1], color='blue',
         #         label='MG (90° incident angle)', zorder=5)
-        plt.title('Energy')
-        plt.xlabel('Energy (meV)')
+        #plt.title('Energy')
+        #plt.xlabel('Energy (meV)')
+        #plt.ylabel('Efficiency')
+        #plt.grid(True, which='major', linestyle='--', zorder=0)
+        #plt.grid(True, which='minor', linestyle='--', zorder=0)
+        #plt.xlim(A_to_meV(end), A_to_meV(start))
+        #plt.xscale('log')
+        #plt.legend()
+        fig.show()
+        fig2 = plt.figure()
+        fig2.set_figheight(5)
+        fig2.set_figwidth(5)
+        positions = np.array([-12, -9, -6, -3, 0, 3, 6, 9, 12])
+        efficiencies = np.array([49.7, 89.7, 94.5, 96.2, 96.3, 96.2,
+                                 95.2, 90.6, 43.7])
+        uncertainties = np.array([0.2, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.2])
+        plt.ylim(-0.02, 1.02)
+        plt.errorbar(positions, efficiencies*0.01, uncertainties*0.01,
+                     color='black', zorder=5, fmt='.-', capsize=1)
+        plt.xlabel('Position (mm)')
         plt.ylabel('Efficiency')
         plt.grid(True, which='major', linestyle='--', zorder=0)
         plt.grid(True, which='minor', linestyle='--', zorder=0)
-        plt.xlim(A_to_meV(end), A_to_meV(start))
-        plt.xscale('log')
-        plt.legend()
-        fig.show()
-
+        fig2.show()
 
     def Energy_Resolution_action(self):
         if (self.data_sets != ''):
@@ -712,8 +758,10 @@ class MainWindow(QMainWindow):
         # Investigate ToF spread
         #investigate_layers_FWHM(df_MG, df_He3, origin_voxel)
         #investigate_layers_delta_ToF(df_MG, df_He3, origin_voxel)
+        investigate_layers_ToF(df_MG)
         duration = get_duration(df_MG)
         investigate_layers_counts(df_MG, duration)
+        #investigate_grids(df_MG, duration)
 
     def full_analysis_action(self):
         # Prepare filter parameters
@@ -732,47 +780,91 @@ class MainWindow(QMainWindow):
         MG_coated_data, MG_non_coated_data, He3_data = full_data[0], full_data[1], full_data[4]
         MG_coated_background, MG_non_coated_background, He3_background = full_data[2], full_data[3], full_data[5]
         # Plot all comparisons
-        FoMs_1, FoMs_2, errors_1, errors_2 = plot_all_peaks_from_three_data_sets(MG_non_coated_data, 'MG_Non_Coated', 'blue', monitor_norm_coated,
-                                                                                 MG_coated_data, 'MG_Coated', 'green', monitor_norm_non_coated,
-                                                                                 He3_data, 'He3', 'red', monitor_norm_He3)
+        #peak_centers, FoMs_1, FoMs_2, errors_1, errors_2 = plot_all_peaks_from_three_data_sets(MG_non_coated_data, 'MG_Non_Coated', 'green', monitor_norm_coated,
+        #                                                                                       MG_coated_data, 'MG_Coated', 'blue', monitor_norm_non_coated,
+        #                                                                                       He3_data, 'He3', 'red', monitor_norm_He3)
         # Plot all peaks
         #Coated_values = plot_all_peaks(MG_coated_data, 'MG_Coated', colors['MG_Coated'], 28.413)
-        #NonCoated_values =  plot_all_peaks(MG_non_coated_data, 'MG_Non_Coated', colors['MG_Non_Coated'], 28.413+1.5e-3)
-        #He3_values = plot_all_peaks(He3_data, 'He3', colors['He3'], 28.239+3e-3)
+        NonCoated_values =  plot_all_peaks(MG_non_coated_data, 'MG_Non_Coated', 'blue', 28.413+1.5e-3)
+        He3_values = plot_all_peaks(He3_data, 'He3', colors['He3'], 28.239+3e-3)
         # Extract key values
-        energies_Coated, FoM_Coated, FoM_err_Coated, peak_areas_Coated, peak_err_Coated, __, shoulder_vector_Coated = Coated_values
-        energies_NonCoated, FoM_NonCoated, FoM_err_NonCoated, peak_areas_NonCoated, peak_err_NonCoated, __, shoulder_vector_NonCoated = NonCoated_values
-        energies_He3, FoM_He3, FoM_err_He3, peak_areas_He3, peak_err_He3, ADC_ratios, shoulder_vector_He3 = He3_values
+        #energies_Coated, peak_areas_Coated, peak_err_Coated, __ = Coated_values
+        energies_NonCoated, peak_areas_NonCoated, peak_err_NonCoated, __ = NonCoated_values
+        print(energies_NonCoated)
+        energies_He3, peak_areas_He3, peak_err_He3, ADC_ratios = He3_values
         # Store all values in vectors
-        energies = [energies_Coated, energies_NonCoated, energies_He3]
+        #energies = [energies_Coated, energies_NonCoated, energies_He3]
         labels = ['MG_Coated', 'MG_Non_Coated', 'He3']
-        FoMs = [FoM_Coated, FoM_NonCoated, FoM_He3]
-        FoM_errors = [FoM_err_Coated, FoM_err_NonCoated, FoM_err_He3]
         # Plot efficiency
-        fig = plt.figure()
-        fig.set_figheight(5)
-        fig.set_figwidth(15)
+        #fig = plt.figure()
         plot_efficiency(np.array(energies_He3), np.array(energies_NonCoated),
                         np.array(peak_areas_He3), np.array(peak_areas_NonCoated),
                         np.array(peak_err_He3), np.array(peak_err_NonCoated),
-                        monitor_norm_He3, monitor_norm_non_coated)
-        fig.show()
+                        monitor_norm_He3, monitor_norm_non_coated, self)
         # Plot FoM
-        fig = plt.figure()
-        for energy, FoM, error, label in zip(energies, FoMs, FoM_errors, labels):
-            plot_FoM(energy, FoM, error, label, colors[label])
-        plt.legend()
-        fig.show()
+        #fig = plt.figure()
+        #for energy, FoM, error, label in zip(energies, FoMs, FoM_errors, labels):
+        #    plot_FoM(energy, FoM, error, label, colors[label])
+        #plt.legend()
+        #fig.show()
         # Plot ADC ratios
-        fig = plt.figure()
-        plt.xlabel('Energy (meV)')
-        plt.ylabel('Ratio (all events/multiple events)')
-        plt.grid(True, which='major', linestyle='--', zorder=0)
-        plt.grid(True, which='minor', linestyle='--', zorder=0)
-        plt.title('Ratio single events multiple events in He-3 tube, using ADC')
-        plt.plot(energies_He3, ADC_ratios, color='red', zorder=5, marker='o',
-                 linestyle='-')
-        fig.show()
+        #fig = plt.figure()
+        #plt.xlabel('Energy (meV)')
+        #plt.ylabel('Ratio (all events/multiple events)')
+        #plt.grid(True, which='major', linestyle='--', zorder=0)
+        #plt.grid(True, which='minor', linestyle='--', zorder=0)
+        #plt.title('Ratio single events multiple events in He-3 tube, using ADC')
+        #plt.plot(energies_He3, ADC_ratios, color='red', zorder=5, marker='o',
+        #         linestyle='-')
+        #fig.show()
+
+        # Plot new type of FoM
+        #fig = plt.figure()
+        #ax1 = fig.add_subplot(111)
+        #ax2 = ax1.twiny()
+        #fig.set_figheight(5)
+        #fig.set_figwidth(5)
+        #ax1.errorbar(meV_to_A(peak_centers), FoMs_1, errors_1, fmt='.-', capsize=1, zorder=5,
+        #             label='Non-Coated radial blades', color='blue', linestyle='solid')
+        #ax1.errorbar(meV_to_A(peak_centers), FoMs_2, errors_2, fmt='.-', capsize=1, zorder=5,
+        #             label='Coated radial blades', color='green', linestyle='solid')
+        #x_ticks = np.array([1, 2, 3, 4, 5, 6])
+        #ax2.set_xlim(ax1.get_xlim())
+        #ax2.set_xticks(x_ticks)
+        #ax2.set_xticklabels(np.round(A_to_meV(x_ticks), 1))
+        #ax2.set_xlabel('Energy (meV)')
+        #ax1.set_xlabel('Wavelength (Å)')
+        #ax1.set_ylabel('Figure-of-Merit')
+        #ax1.grid(True, which='major', linestyle='--', zorder=0)
+        #ax1.grid(True, which='minor', linestyle='--', zorder=0)
+        #ax1.set_title('Figure-of-Merit')
+        #ax1.legend()
+        #fig.show()
+        # Plot fraction of FoMs
+        #fig = plt.figure()
+        #ax1 = fig.add_subplot(111)
+        #ax2 = ax1.twiny()
+        #fig.set_figheight(5)
+        #fig.set_figwidth(5)
+        #fraction = FoMs_2/FoMs_1
+        #uncertainity_fraction = np.sqrt((errors_1/FoMs_1) ** 2 + (errors_2/FoMs_2) ** 2) * fraction
+        #ax1.errorbar(meV_to_A(peak_centers),
+        #             fraction,
+        #             uncertainity_fraction,
+        #             fmt='.-', capsize=1, zorder=5, label='Coated/Non-coated',
+        #             color='black')
+        #x_ticks = np.array([1, 2, 3, 4, 5, 6])
+        #ax2.set_xlim(ax1.get_xlim())
+        #ax2.set_xticks(x_ticks)
+        #ax2.set_xticklabels(np.round(A_to_meV(x_ticks), 1))
+        #ax2.set_xlabel('Energy (meV)')
+        #ax1.set_xlabel('Wavelength (Å)')
+        #ax1.set_ylabel('Fractional Figure-of-Merit (Coated/Non-coated)')
+        #ax1.grid(True, which='major', linestyle='--', zorder=0)
+        #ax1.grid(True, which='minor', linestyle='--', zorder=0)
+        #ax1.set_title('Fractional Figure-of-Merit - Coated/Non-coated')
+        #ax1.legend()
+        #fig.show()
 
 
 
@@ -870,7 +962,7 @@ class MainWindow(QMainWindow):
                    np.transpose(np.array([bins, hist])),
                    delimiter=",",
                    header='ToF (µs), Counts')
-        plt.legend()
+        #plt.legend()
         fig.show()
 
     def He3_Ch_action(self):
@@ -902,6 +994,7 @@ class MainWindow(QMainWindow):
         plt.legend()
         fig.show()
 
+
     def He3_Wavelength_action(self):
         parameters = get_He3_filter_parameters(self)
         df_red = filter_He3(self.He3_df, parameters)
@@ -909,15 +1002,14 @@ class MainWindow(QMainWindow):
         plot_energy = False
         fig = plt.figure()
         plt.subplot(1, 2, 1)
-        hist_full, bins_full = energy_plot_He3(df_red, number_bins, plot_energy, 'Full Data')
-        hist_pileup, bins_pileup = energy_plot_He3(df_red[df_red.PileUp == 1], number_bins, plot_energy, 'Pile Up Events')
+        hist_full, bins_full = energy_plot_He3(df_red, number_bins, plot_energy, 'All events')
+        hist_pileup, bins_pileup = energy_plot_He3(df_red[df_red.PileUp == 1], number_bins, plot_energy, 'Pile-up Events')
         plt.legend()
         plt.subplot(1, 2, 2)
         plt.grid(True, which='major', linestyle='--', zorder=0)
         plt.grid(True, which='minor', linestyle='--', zorder=0)
-        plt.xlabel('Energy (meV)')
-        plt.ylabel('Fraction of Counts (PileUp/Full)')
-        plt.title('Investigation of Pileup')
+        plt.xlabel('Wavelength (Å)')
+        plt.ylabel('Pile-up events/All events')
         plt.plot(bins_full, hist_pileup/hist_full, color='black', zorder=5)
         fig.show()
 
@@ -932,18 +1024,23 @@ class MainWindow(QMainWindow):
         number_bins = int(self.tofBins.text())
         MG_label, He3_label = self.data_sets, self.He3_data_sets
         useMaxNorm = True
+        monitor_norm_coated = 1/11411036
+        monitor_norm_non_coated = 1/9020907
+        monitor_norm_He3 = 1/10723199
         # Plot data
         hist_He3, bin_centers_He3 = He3_ToF_plot(He3_red, number_bins)
         hist_MG, bin_centers_MG = ToF_histogram(MG_red, number_bins)
         fig = plt.figure()
-        plt.plot(bin_centers_MG, hist_MG/max(hist_MG), zorder=5, color='blue', label='MG')
-        plt.plot(bin_centers_He3, hist_He3/max(hist_He3), zorder=5, color='red', label='He-3')
+        #fig.set_figheight(5)
+        #fig.set_figwidth(5)
+        plt.plot(bin_centers_MG, hist_MG*(1/(max(hist_MG))), zorder=5, color='blue', label='Multi-Grid detector')
+        plt.plot(bin_centers_He3, hist_He3*(1/max(hist_He3)), zorder=5, color='red', label='Helium-3 tube')
         plt.xlabel('ToF (µs)')
-        plt.ylabel('Counts (Normalized to maximum)')
-        plt.title('ToF - MG vs He-3')
+        plt.ylabel('Counts (Normalized to max intensity)')
+        #plt.title('ToF - Multi-Grid vs He-3')
         plt.grid(True, which='major', linestyle='--', zorder=0)
         plt.grid(True, which='minor', linestyle='--', zorder=0)
-        plt.legend()
+        plt.legend(loc=2)
         fig.show()
 
     def He3_pileup_action(self):

@@ -80,8 +80,8 @@ def coincidences_3D_plot(df, origin_voxel):
                                            colorbar=dict(thickness=20,
                                                          title='log10(counts)'
                                                          ),
-                                           #cmin=np.log10(min(hist[3])+1),
-                                           #cmax=np.log10(max(hist[3])+2)
+                                           cmin=1,
+                                           cmax=5.5
                                            ),
                                text=labels,
                                name='Multi-Grid',
@@ -97,15 +97,18 @@ def coincidences_3D_plot(df, origin_voxel):
     # Assign layout with axis labels, title and camera angle
     a = 2
     camera = dict(up=dict(x=0, y=1, z=0), center=dict(x=0, y=0, z=0),
-                  eye=dict(x=1*a, y=1*a, z=1*a))
+                  eye=dict(x=1*a, y=1*a, z=-1*a))
     scene=dict(camera=camera, #the default values are 1.25, 1.25, 1.25
            xaxis=dict(),
            yaxis=dict(),
            zaxis=dict(),
            aspectmode='data')
-    fig['layout']['scene1']['xaxis'].update(title='x [m]')
-    fig['layout']['scene1']['yaxis'].update(title='y [m]')
-    fig['layout']['scene1']['zaxis'].update(title='z [m]')
+    #fig['layout']['scene1']['xaxis'].update(title='x [m]')
+    #fig['layout']['scene1']['yaxis'].update(title='y [m]')
+    #fig['layout']['scene1']['zaxis'].update(title='z [m]')
+    fig['layout']['scene1']['xaxis'].update(showticklabels=False)
+    fig['layout']['scene1']['yaxis'].update(showticklabels=False)
+    fig['layout']['scene1']['zaxis'].update(showticklabels=False)
     fig['layout'].update(title='Coincidences (3D)')
     fig['layout']['scene1'].update(scene)
     fig.layout.showlegend = False

@@ -11,6 +11,8 @@ from scipy.signal import find_peaks
 from multi_grid.helper_functions.energy_calculation import calculate_energy
 from multi_grid.helper_functions.misc import meV_to_A, A_to_meV
 
+from multi_grid.helper_functions.peak_finding import get_peaks
+
 # =============================================================================
 #                                  ENERGY
 # =============================================================================
@@ -55,6 +57,13 @@ def energy_plot(df, origin_voxel, number_bins, start=1, stop=10,
                                        zorder=5, histtype='step',
                                        label=label,
                                        weights=norm)
+
+        heights_MG_non_coated = [8000, 1000]
+        peaks, heights = get_peaks(hist, heights_MG_non_coated, number_bins)
+        bin_centers = 0.5 * (bin_edges[1:] + bin_edges[:-1])
+        plt.plot(bin_centers[peaks], hist[peaks], 'x', color='red')
+        plt.plot(bin_centers, heights, color='black')
+
     else:
         plt.xlabel('Wavelength [Å]')
         plt.title('Wavelength Distribution')

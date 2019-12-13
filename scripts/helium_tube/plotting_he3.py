@@ -16,6 +16,8 @@ from matplotlib.colors import LogNorm
 
 from helium_tube.energy_he3 import calculate_He3_energy
 from scipy.signal import find_peaks
+from multi_grid.helper_functions.peak_finding import get_peaks
+
 
 # =============================================================================
 #                               PHS - HELIUM-3
@@ -52,7 +54,8 @@ def He3_ToF_plot(df, number_bins, label=None, range=None):
     period_time = (1/14) * 1e6
     hist, bin_edges, *_ = plt.hist((df.ToF * (8e-9) * 1e6 + time_offset) % period_time,
                                    histtype='step', zorder=5, bins=number_bins, label=label,
-                                   range=range)
+                                   range=range,
+                                   color='black')
     bin_centers = 0.5 * (bin_edges[1:] + bin_edges[:-1])
     plt.xlabel('ToF [µs]')
     plt.ylabel('Counts')
@@ -104,7 +107,7 @@ def energy_plot_He3(df, number_bins, plot_energy=False, label=None, useMaxNorm=F
             norm = (1/max(hist_temp))*np.ones(len(energy))
     # Plot data
     if plot_energy:
-        plt.xlabel('Energy [meV]')
+        plt.xlabel('Energy (meV)')
         plt.title('Energy Distribution')
         plt.xscale('log')
         hist, bin_edges, *_ = plt.hist(energy, bins=number_bins,
@@ -115,18 +118,20 @@ def energy_plot_He3(df, number_bins, plot_energy=False, label=None, useMaxNorm=F
                                        linestyle='-')
         bin_centers = 0.5 * (bin_edges[1:] + bin_edges[:-1])
         # Extract heights
-        heights = np.zeros(len(bin_centers))
-        heights[(bin_centers >= 0) & (bin_centers <= 2.5)] = 2000
-        heights[(bin_centers >= 2.5) & (bin_centers <= 50.0)] = 20000
-        heights[(bin_centers >= 50.0) & (bin_centers <= 70.0)] = 2000
-        heights[(bin_centers >= 70.0) & (bin_centers <= 100.0)] = 286
+        #heights = np.zeros(len(bin_centers))
+        #heights[(bin_centers >= 0) & (bin_centers <= 2.5)] = 2000
+        #heights[(bin_centers >= 2.5) & (bin_centers <= 50.0)] = 20000
+        #heights[(bin_centers >= 50.0) & (bin_centers <= 70.0)] = 2000
+        #heights[(bin_centers >= 70.0) & (bin_centers <= 100.0)] = 286
         # Get peaks
         #peaks, *_ = find_peaks(hist, height=heights)
-        #plt.plot(bin_centers[peaks], hist[peaks], marker='x', linestyle='', color='red')
-        #plt.plot(bin_centers, heights, color='black')
+        heights_He3 = [20000, 1000]
+        peaks, heights = get_peaks(hist, heights_He3, number_bins)
+        plt.plot(bin_centers[peaks], hist[peaks], marker='x', linestyle='', color='red')
+        plt.plot(bin_centers, heights, color='black')
     else:
-        plt.xlabel('Wavelength [Å]')
-        plt.title('Wavelength Distribution')
+        plt.xlabel('Wavelength (Å)')
+        #plt.title('Wavelength Distribution')
         hist, bin_edges, *_ = plt.hist(meV_to_A(energy), bins=number_bins,
                                        range=[start, end], zorder=5,
                                        histtype='step',

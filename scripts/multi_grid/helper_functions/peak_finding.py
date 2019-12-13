@@ -5,6 +5,7 @@ PeakFinding.py: Helper functions for handling of paths and folders.
 """
 import numpy as np
 from scipy.signal import find_peaks
+import matplotlib.pyplot as plt
 
 # =============================================================================
 #                          FIND PEAKS IN HISTOGRAM
@@ -22,4 +23,4 @@ def get_peaks(hist, heights, number_bins):
     heights = np.append(heights_part1, heights_part2)
     # Get peaks
     peaks, *_ = find_peaks(hist, height=heights)
-    return peaks
+    return peaks, heights

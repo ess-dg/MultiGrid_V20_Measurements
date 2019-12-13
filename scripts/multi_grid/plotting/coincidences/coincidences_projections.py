@@ -58,7 +58,7 @@ def coincidences_projections_plot(df, bus_start, bus_stop, norm=1):
     plt.subplot(1, 3, 3)
     h_side = plot_side(wChs, gChs, Buses,
                        None, None,
-                       #5e-5, 2e-3,
+                       #4e-5, 2e-3,
                        norm)
     # Collect all histograms and tighted layout
     plt.tight_layout()

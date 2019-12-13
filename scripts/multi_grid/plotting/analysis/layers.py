@@ -7,6 +7,7 @@ Animation3D.py: Helper functions for handling of paths and folders.
 import plotly as py
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 import os
 import imageio
 import shutil
@@ -29,30 +30,44 @@ def investigate_layers_ToF(df):
     # Define parameters for ToF-histogram
     time_offset = (0.6e-3) * 1e6
     period_time = (1/14) * 1e6
-    number_bins = 200
+    number_bins = 300
     # Define beam hit position
     GRID = 88
     ROW = 6
     # Iterate through the first ten layers and compare
     fig = plt.figure()
-    for layer in range(0, 10):
+    df_red = df[(((df.Bus * 4) + df.wCh//20) == ROW) &
+                (df.gCh == GRID)]
+    plt.hist((df_red.ToF * 62.5e-9 * 1e6 + time_offset) % period_time,
+             bins=number_bins,
+             #range=[28e3, 28.5e3],
+             range=[40500, 40900],
+             zorder=4,
+             histtype='step',
+             color='blue',
+             label='All layers')
+    for layer in range(0, 20):
         # Filter data so that we are only using data from a single voxel
-        df_red = df[((df.wCh % 20) == layer) &
-                    (((df.Bus * 4) + df.wCh//20) == ROW) &
-                    (df.gCh == GRID)]
+        df_red = df[((df.wCh % 20) == layer)
+                    &
+                    (((df.Bus * 4) + df.wCh//20) == ROW)
+                    &
+                    (df.gCh == GRID)
+                    ]
         # Plot ToF-histogram
         plt.hist((df_red.ToF * 62.5e-9 * 1e6 + time_offset) % period_time,
                  bins=number_bins,
+                 #range=[28e3, 28.5e3],
                  range=[40500, 40900],
                  zorder=4,
                  histtype='step',
-                 label='Layer: %d' % layer)
-        plt.grid(True, which='major', linestyle='--', zorder=0)
-        plt.grid(True, which='minor', linestyle='--', zorder=0)
-        plt.xlabel('ToF [µs]')
-        plt.ylabel('Counts')
-        plt.ylim(0, 300)
-        plt.title('ToF from different layers (gCh = 88, row = 6)')
+                 label='Layer %d' % layer)
+    plt.grid(True, which='major', linestyle='--', zorder=0)
+    plt.grid(True, which='minor', linestyle='--', zorder=0)
+    plt.xlabel('ToF (µs)')
+    plt.ylabel('Counts')
+    #plt.ylim(0, 300)
+    #plt.title('ToF from different layers (gCh = 88, row = 6)')
     plt.legend()
     fig.show()
 
@@ -326,40 +341,79 @@ def investigate_layers_delta_ToF(df_MG, df_He3, origin_voxel):
 # =============================================================================
 
 def investigate_layers_counts(df, duration):
-    # Get count as a function of layer
+    # Get count as a function of layer and grid
     layers = np.arange(0, 20, 1)
-    counts = [df[(df.wCh % 20) == layer].shape[0] for layer in layers]
+    grids = np.arange(80, 120, 1)
+    counts_layers = [df[(df.wCh % 20) == layer].shape[0] for layer in layers]
+    counts_grids = [df[df.gCh == grid].shape[0] for grid in grids]
     # Plot data
     fig = plt.figure()
+    fig.set_figheight(5)
+    fig.set_figwidth(10)
+    plt.subplot(1, 2, 1)
     plt.grid(True, which='major', linestyle='--', zorder=0)
     plt.grid(True, which='minor', linestyle='--', zorder=0)
     plt.xlabel('Layer')
-    plt.ylabel('Counts (Normalized by duration)')
+    plt.ylabel('Rate (events/s)')
     plt.title('Counts vs layer')
-    plt.errorbar(layers, counts/duration, np.sqrt(counts)*(1/duration),
+    plt.errorbar(layers, counts_layers/duration, np.sqrt(counts_layers)*(1/duration),
                  fmt='.-', capsize=5, zorder=5, color='black')
+    # Look at other direction
+    plt.subplot(1, 2, 2)
+    plt.grid(True, which='major', linestyle='--', zorder=0)
+    plt.grid(True, which='minor', linestyle='--', zorder=0)
+    plt.xlabel('Grid (bottom to top)')
+    plt.ylabel('Rate (events/s)')
+    plt.title('Counts vs grid')
+    plt.errorbar(grids, counts_grids/duration, np.sqrt(counts_grids)*(1/duration),
+                 fmt='.-', capsize=5, zorder=5, color='black')
+    plt.tight_layout()
     fig.show()
 
-
 # =============================================================================
-#                      LAYERS INVESTIGATION - PHS
+#                      LAYERS INVESTIGATION - GRIDS
 # =============================================================================
 
-def investigate_layers_phs(df, duration):
-    # Get count as a function of layer
-    layers = np.arange(0, 20, 1)
-    counts = [df[(df.wCh % 20) == layer].shape[0] for layer in layers]
-    # Plot data
+def investigate_grids(df, duration):
+    # Declare parameters
+    time_offset = (0.6e-3) * 1e6
+    period_time = (1/14) * 1e6
+    # Plot
     fig = plt.figure()
     plt.grid(True, which='major', linestyle='--', zorder=0)
     plt.grid(True, which='minor', linestyle='--', zorder=0)
-    plt.xlabel('Layer')
-    plt.ylabel('Counts (Normalized by duration)')
-    plt.title('Counts vs layer')
-    plt.errorbar(layers, counts/duration, np.sqrt(counts)*(1/duration),
-                 fmt='.-', capsize=5, zorder=5, color='black')
+    gChs = np.arange(80, 120, 1)
+    thresholds = [200, 400, 600, 800, 1000, 1200]
+    for threshold in thresholds:
+        df_red = df[(df.gADC >= threshold) & (df.wADC >= threshold)]
+        counts = [df_red[df_red.gCh == gCh].shape[0] for gCh in gChs]
+        plt.errorbar(gChs, counts, np.sqrt(counts), zorder=5,
+                     label='Threshold: %d ADC channels' % threshold)
+    plt.legend()
+    plt.xlabel('Grid')
+    plt.ylabel('Counts')
     fig.show()
-
+    fig2 = plt.figure()
+    plt.hist2d((df.ToF * 62.5e-9 * 1e6 + time_offset) % period_time, df.gCh,
+               bins=[500, 40],
+               #range=[[0, 7e4], [0.5, 39.5]],
+               vmin=8e2, vmax=5e5,
+               norm=LogNorm(),
+               cmap='jet')
+    plt.xlabel('ToF (µs)')
+    plt.ylabel('Grid')
+    plt.colorbar()
+    fig2.show()
+    fig3 = plt.figure()
+    plt.hist2d(df.gADC, df.gCh,
+               bins=[500, 40],
+               #range=[[0, 7e4], [0.5, 39.5]],
+               #norm=LogNorm(),
+               cmap='jet')
+    plt.xlabel('Charge (ADC channels)')
+    plt.ylabel('Grid')
+    plt.colorbar()
+    fig3.show()
 
 
 

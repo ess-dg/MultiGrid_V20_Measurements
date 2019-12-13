@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from multi_grid.helper_functions.misc import find_nearest, A_to_meV, meV_to_A
-
+from helium_tube.filtering_he3 import get_He3_filter_parameters, filter_He3
+from helium_tube.plotting_he3 import energy_plot_He3
 
 # =============================================================================
 #                                EFFICIENCY
@@ -20,7 +21,8 @@ from multi_grid.helper_functions.misc import find_nearest, A_to_meV, meV_to_A
 def plot_efficiency(He3_energies, MG_energies,
                     He3_areas, MG_areas,
                     He3_err, MG_err,
-                    monitor_norm_He3, monitor_norm_MG):
+                    monitor_norm_He3, monitor_norm_MG,
+                    window):
     """
     Calculates the efficiency of the Multi-Grid detector at energy 'Ei'. Does
     through analysis in energy transfer spectra in three steps:
@@ -41,6 +43,9 @@ def plot_efficiency(He3_energies, MG_energies,
         MG_efficiency (float): Efficiency of the Multi-Grid at energy Ei
     """
 
+    fig = plt.figure()
+    fig.set_figheight(5)
+    fig.set_figwidth(15)
     # Load calculated efficiencies, as a function of lambda
     dirname = os.path.dirname(__file__)
     He3_efficiency_path = os.path.join(dirname, '../../../../tables/He3_efficiency.txt')
@@ -48,9 +53,9 @@ def plot_efficiency(He3_energies, MG_energies,
     He3_efficiency = np.loadtxt(He3_efficiency_path, delimiter=",", unpack=True)
     MG_efficiency_calc = np.loadtxt(MG_efficiency_path, delimiter=",", unpack=True)[[0, 2]]
     # Remove elements in MG data which are not recorded in He-3
-    MG_energies = np.delete(MG_energies, [0, 2])
-    MG_areas = np.delete(MG_areas, [0, 2])
-    MG_err = np.delete(MG_err, [0, 2])
+    MG_energies = np.delete(MG_energies, [0, 2, len(MG_energies)-5])
+    MG_areas = np.delete(MG_areas, [0, 2, len(MG_areas)-5])
+    MG_err = np.delete(MG_err, [0, 2, len(MG_err)-5])
     # Iterate through energies to find matching efficiency from calculation to our measured data points
     He3_efficiency_datapoints = []
     for energy in He3_energies:
@@ -124,6 +129,95 @@ def plot_efficiency(He3_energies, MG_energies,
     plt.title('Efficiency measurement')
     plt.legend()
     plt.tight_layout()
+    fig.show()
+
+
+    # Plot only efficiency vs lambda_sweep
+
+    # Get pile-up fraction
+    parameters = get_He3_filter_parameters(window)
+    df_red = filter_He3(window.He3_df, parameters)
+    number_bins = int(window.dE_bins.text())
+    plot_energy = False
+    hist_full, bins_full = energy_plot_He3(df_red, number_bins, plot_energy, 'All events')
+    hist_pileup, bins_pileup = energy_plot_He3(df_red[df_red.PileUp == 1], number_bins, plot_energy, 'Pile-up Events')
+    pileup_fraction = hist_pileup/hist_full
+
+    # Plot together with efficiency
+    fig = plt.figure()
+    ax1 = fig.add_subplot(111)
+    ax2 = ax1.twinx()
+    ax1.plot(MG_efficiency_calc[0], MG_efficiency_calc[1], color='black',
+             label='Multi-Grid detector: calculated', zorder=5)
+    ax1.errorbar(meV_to_A(MG_energies), MG_efficiency, full_errors, fmt='.-',
+                 capsize=5, color='blue', label='Multi-Grid detector: measured', zorder=5)
+    ax1.plot(bins_full, pileup_fraction, color='green', zorder=5, label='Helium-3 tube: pile-up fraction')
+    #ymin = 0
+    #ymax = max(MG_efficiency)
+    #y_ticks = np.linspace(ymin, ymax, 5)
+    #ax1.set_ylim(ymin, ymax)
+    ax1.set_xlim(0, 6.25)
+    other_y_axis_lim = ax1.get_ylim()
+    ax2.set_ylim(other_y_axis_lim)
+
+    ax2.spines['right'].set_color('green')
+    ax2.yaxis.label.set_color('green')
+    ax2.tick_params(axis='y', colors='green')
+
+    #ax2.set_ylim(ymin, ymax)
+    #ax1.set_yticks(y_ticks)
+    #ax2.set_yticks(y_ticks)
+    ax1.tick_params('y', color='black')
+    ax2.tick_params('y', color='green')
+    ax1.set_xlabel('Wavelength (Å)')
+    ax1.set_ylabel('Efficiency')
+    ax2.set_ylabel('Helium-3 pile-up fraction')
+    ax1.grid(True, which='major', linestyle='--', zorder=0)
+    ax1.grid(True, which='minor', linestyle='--', zorder=0)
+    #ax1.set_title('Figure-of-Merit')
+    ax1.legend()
+    fig.show()
+
+    # Plot together with saturation
+    fig = plt.figure()
+    ax1 = fig.add_subplot(111)
+    ax2 = ax1.twinx()
+    ax1.errorbar(meV_to_A(He3_energies),
+                 He3_areas*monitor_norm_He3,
+                 He3_err*monitor_norm_He3,
+                 fmt='.-', capsize=5,  color='red', label='Helium-3 tube', zorder=5)
+    ax1.errorbar(meV_to_A(MG_energies),
+                 MG_areas*monitor_norm_MG,
+                 MG_err*monitor_norm_MG,
+                 fmt='.-', capsize=5,  color='blue', label='Multi-Grid detector', zorder=5)
+    ax2.plot(bins_full, pileup_fraction, color='green', zorder=5, label='Helium-3 tube: pile-up fraction')
+    ax1.plot([], [], color='green', label='Helium-3 tube: pile-up fraction')
+
+    #ymin = 0
+    #ymax = max(MG_efficiency)
+    #y_ticks = np.linspace(ymin, ymax, 5)
+    #ax1.set_ylim(ymin, ymax)
+    ax1.set_xlim(0, 6.25)
+    #ax1.set_ylim(other_y_axis_lim)
+    ax2.set_ylim(other_y_axis_lim)
+
+    ax2.spines['right'].set_color('green')
+    ax2.yaxis.label.set_color('green')
+    ax2.tick_params(axis='y', colors='green')
+
+    #ax2.set_ylim(ymin, ymax)
+    #ax1.set_yticks(y_ticks)
+    #ax2.set_yticks(y_ticks)
+    ax1.tick_params('y', color='black')
+    ax2.tick_params('y', color='green')
+    ax1.set_xlabel('Wavelength (Å)')
+    ax1.set_ylabel('Peak area (Counts normalized by beam monitor counts)')
+    ax2.set_ylabel('Helium-3 pile-up fraction')
+    ax1.grid(True, which='major', linestyle='--', zorder=0)
+    ax1.grid(True, which='minor', linestyle='--', zorder=0)
+    #ax1.set_title('Figure-of-Merit')
+    ax1.legend()
+    fig.show()
 
 
 
@@ -152,11 +246,15 @@ def get_peak_area(energies, x0, sigma, bin_width, weights=None):
     if x0 < 70:
         back_start = -30
         back_stop = -25
+        peak_start = 16
+        peak_stop = 4
     else:
         back_start = -3
         back_stop = -2
+        peak_start = 2
+        peak_stop = 2
     # Extract number of counts from regions of interest
-    peak_indexes = (energies >= (x0 - sigma)) & (energies <= (x0 + sigma))
+    peak_indexes = (energies >= (x0 - peak_start*sigma)) & (energies <= (x0 + peak_stop*sigma))
     background_indexes = (energies >= (x0 + back_start*sigma)) & (energies <= (x0 + back_stop*sigma))
     peak_counts = energies[peak_indexes]
     background_counts = energies[background_indexes]
@@ -165,7 +263,7 @@ def get_peak_area(energies, x0, sigma, bin_width, weights=None):
     b = len(background_counts)
     background_range_in_meV = sigma*abs((back_start-back_stop))
     # Define normalization constants
-    norm = (1/background_range_in_meV) * 2*sigma
+    norm = (1/background_range_in_meV) * sigma * (peak_start+peak_stop)
     # Calculate area
     if weights is not None:
         norm_a = sum(weights[peak_indexes])/a
@@ -187,6 +285,6 @@ def get_peak_area(energies, x0, sigma, bin_width, weights=None):
     plt.axvline(x=x0 + back_start*sigma, color='black', linewidth=2, label='Background')
     plt.axvline(x=x0 + back_stop*sigma, color='black', linewidth=2, label=None)
     # Statistics for peak area
-    plt.axvline(x=x0 - sigma, color='orange', linewidth=2, label='-σ')
-    plt.axvline(x=x0 + sigma, color='orange', linewidth=2, label='σ')
+    plt.axvline(x=x0 - peak_start*sigma, color='orange', linewidth=2, label='Peak borders')
+    plt.axvline(x=x0 + peak_stop*sigma, color='orange', linewidth=2, label=None)
     return area, uncertainty

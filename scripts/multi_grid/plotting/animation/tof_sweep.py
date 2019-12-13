@@ -27,7 +27,7 @@ def ToF_Sweep_Animation(ce, number_bins, bus_start, bus_stop):
     # Storage
     dir_name = os.path.dirname(__file__)
     temp_folder = os.path.join(dir_name, '../temp_folder/')
-    output_path = os.path.join(dir_name, '../../../Output/ToF_sweep.gif')
+    output_path = os.path.join(dir_name, '../../../../output/ToF_sweep.gif')
     mkdir_p(temp_folder)
     # Declare parameters
     time_offset = (0.6e-3) * 1e6
@@ -35,9 +35,9 @@ def ToF_Sweep_Animation(ce, number_bins, bus_start, bus_stop):
     # Calculate ToF
     ToF = (ce.ToF.values * 62.5e-9 * 1e6 + time_offset) % period_time
     # Define intervals
-    iter_start = 15000
-    iter_stop = 20000
-    step = 50
+    iter_start = 0
+    iter_stop = 70000
+    step = 500
     delimiters = np.arange(iter_start, iter_stop, step)
     # Iteration
     vmin = 1

@@ -54,10 +54,10 @@ def PHS_1D_plot(clusters, number_bins, label='', norm=1, ylabel='',
         hist, bins, *_ = plt.hist(clusters[ADC_type], bins=number_bins,
                                   histtype='step', label='Clusters %s' % label,
                                   zorder=5, weights=weights, range=range,
-                                  density=density)
+                                  density=density, color='black')
         bin_centers = 0.5 * (bins[1:] + bins[:-1])
         bin_centers_vec.append(bin_centers)
         hists.append(hist)
-        plt.legend(loc=1)
+        #plt.legend(loc=1)
     plt.tight_layout()
     return bin_centers_vec, hists
